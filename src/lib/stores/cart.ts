@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 type CartItem = {
   productId: string;
@@ -14,25 +15,34 @@ type CartState = {
   clearCart: () => void;
 };
 
-export const useCart = create<CartState>((set) => ({
-  items: [],
-  addItem: (item) =>
-    set((state) => {
-      const existing = state.items.find((i) => i.productId === item.productId);
-      if (existing) {
-        return {
-          items: state.items.map((i) =>
-            i.productId === item.productId
-              ? { ...i, quantity: item.quantity }
-              : i
-          ),
-        };
-      }
-      return { items: [...state.items, item] };
+export const useCart = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      addItem: (item) =>
+        set((state) => {
+          const existing = state.items.find(
+            (i) => i.productId === item.productId
+          );
+          if (existing) {
+            return {
+              items: state.items.map((i) =>
+                i.productId === item.productId
+                  ? { ...i, quantity: item.quantity }
+                  : i
+              ),
+            };
+          }
+          return { items: [...state.items, item] };
+        }),
+      removeItem: (productId) =>
+        set((state) => ({
+          items: state.items.filter((i) => i.productId !== productId),
+        })),
+      clearCart: () => set({ items: [] }),
     }),
-  removeItem: (productId) =>
-    set((state) => ({
-      items: state.items.filter((i) => i.productId !== productId),
-    })),
-  clearCart: () => set({ items: [] }),
-}));
+    {
+      name: "cart-storage", // name of item in localStorage
+    }
+  )
+);

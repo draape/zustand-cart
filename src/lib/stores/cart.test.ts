@@ -50,6 +50,7 @@ describe("Cart Store", () => {
 
     expect(cart.items).toHaveLength(0);
   });
+
   it("clears the cart", () => {
     const cart = useCart.getState();
     cart.addItem({
@@ -71,5 +72,24 @@ describe("Cart Store", () => {
     cart.clearCart();
 
     expect(useCart.getState().items).toHaveLength(0);
+  });
+
+  it("persists cart items to localStorage", () => {
+    const key = "cart-storage";
+    // Clear any old state first
+    localStorage.removeItem(key);
+
+    useCart.getState().addItem({
+      productId: "p99",
+      name: "Persistent Product",
+      price: 99,
+      quantity: 1,
+    });
+
+    const raw = localStorage.getItem(key);
+    expect(raw).toBeTruthy();
+
+    const data = JSON.parse(raw!);
+    expect(data.state.items[0].productId).toBe("p99");
   });
 });
