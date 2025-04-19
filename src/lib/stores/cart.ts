@@ -1,12 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-type CartItem = {
-  productId: string;
-  name: string;
-  price: number;
-  quantity: number;
-};
+import { CartItem } from "./types";
+import { ADD_ITEM, enqueueCartMessage } from "@/lib/queue/cart-queue";
 
 type CartState = {
   items: CartItem[];
@@ -19,22 +14,24 @@ export const useCart = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      addItem: (item) =>
-        set((state) => {
-          const existing = state.items.find(
-            (i) => i.productId === item.productId
-          );
-          if (existing) {
-            return {
-              items: state.items.map((i) =>
-                i.productId === item.productId
-                  ? { ...i, quantity: item.quantity }
-                  : i
-              ),
-            };
-          }
-          return { items: [...state.items, item] };
-        }),
+      addItem: (item) => {
+        const existing = get().items.find(
+          (i) => i.productId === item.productId
+        );
+        if (existing) {
+          set({
+            items: get().items.map((i) =>
+              i.productId === item.productId
+                ? { ...i, quantity: item.quantity }
+                : i
+            ),
+          });
+        } else {
+          set({ items: [...get().items, item] });
+        }
+
+        enqueueCartMessage(ADD_ITEM, item);
+      },
       removeItem: (productId) =>
         set((state) => ({
           items: state.items.filter((i) => i.productId !== productId),

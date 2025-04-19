@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useCart } from "./cart";
 
-describe("Cart Store", () => {
+describe("Cart store", () => {
   beforeEach(() => {
     useCart.getState().clearCart();
   });
