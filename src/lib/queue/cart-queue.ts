@@ -1,5 +1,5 @@
 import { createMessageQueue } from "./create-message-queue";
-import { CartItem } from "@/lib/stores/types";
+import { CartItem } from "../stores/types";
 
 export const ADD_ITEM = "ADD_ITEM";
 

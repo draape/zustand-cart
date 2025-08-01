@@ -1,13 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { CartItem } from "./types";
-import { ADD_ITEM, enqueueCartMessage } from "@/lib/queue/cart-queue";
+import { ADD_ITEM, enqueueCartMessage } from "../queue/cart-queue";
 
 type CartState = {
   items: CartItem[];
   addItem: (item: CartItem) => void;
   removeItem: (productId: string) => void;
   clearCart: () => void;
+  // TODO: Summary
 };
 
 export const useCart = create<CartState>()(
