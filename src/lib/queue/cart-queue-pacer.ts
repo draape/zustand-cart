@@ -1,5 +1,4 @@
 import { Queuer, QueuerState } from "@tanstack/pacer";
-import { CartAction } from "./types/cart-action";
 import polly from "polly-js";
 import { CartEvent, cartEventHandlers } from "../events/cart";
 
