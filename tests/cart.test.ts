@@ -1,12 +1,31 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { useCart } from "./cart";
+import { describe, it, expect, beforeEach, vi, MockInstance } from "vitest";
+import { CART_STORAGE_KEY, useCart } from "../src/lib/stores/cart";
+import {
+  cartEventHandlers,
+  ItemAdded,
+  ItemRemoved,
+} from "../src/lib/events/cart";
+
+let addItemSpy: MockInstance<(evt: ItemAdded) => Promise<void>>;
+let removeItemSpy: MockInstance<(evt: ItemRemoved) => Promise<void>>;
+let clearCartSpy: MockInstance<() => Promise<void>>;
 
 describe("Cart store", () => {
   beforeEach(() => {
+    addItemSpy = vi.spyOn(cartEventHandlers, "ITEM_ADDED").mockResolvedValue();
+    removeItemSpy = vi
+      .spyOn(cartEventHandlers, "ITEM_REMOVED")
+      .mockResolvedValue();
+    clearCartSpy = vi
+      .spyOn(cartEventHandlers, "CART_CLEARED")
+      .mockResolvedValue();
+
     useCart.getState().clearCart();
+    // Reset spy to ensure no previous calls affect any tests
+    clearCartSpy.mockClear();
   });
 
-  it("adds items to the cart", () => {
+  it("Adds items to the cart", () => {
     useCart.getState().addItem({
       productId: "p1",
       name: "Test Product",
@@ -19,7 +38,7 @@ describe("Cart store", () => {
     expect(items[0].name).toBe("Test Product");
   });
 
-  it("updates quantity if item already exists", () => {
+  it("Updates quantity if item already exists", () => {
     const cart = useCart.getState();
     cart.addItem({
       productId: "p1",
@@ -38,7 +57,7 @@ describe("Cart store", () => {
     expect(item.quantity).toBe(3);
   });
 
-  it("removes items from the cart", () => {
+  it("Removes items from the cart", () => {
     const cart = useCart.getState();
     cart.addItem({
       productId: "p1",
@@ -51,7 +70,7 @@ describe("Cart store", () => {
     expect(cart.items).toHaveLength(0);
   });
 
-  it("clears the cart", () => {
+  it("Clears the cart", () => {
     const cart = useCart.getState();
     cart.addItem({
       productId: "p1",
@@ -74,8 +93,8 @@ describe("Cart store", () => {
     expect(useCart.getState().items).toHaveLength(0);
   });
 
-  it("persists cart items to localStorage", () => {
-    const key = "cart-storage";
+  it("Persists cart items to localStorage", () => {
+    const key = CART_STORAGE_KEY;
     // Clear any old state first
     localStorage.removeItem(key);
 
@@ -91,5 +110,32 @@ describe("Cart store", () => {
 
     const data = JSON.parse(raw!);
     expect(data.state.items[0].productId).toBe("p99");
+  });
+
+  it("Message is queued for each cart action", async () => {
+    const cart = useCart.getState();
+
+    cart.addItem({
+      productId: "p1",
+      name: "Test Product",
+      price: 10,
+      quantity: 1,
+    });
+
+    cart.addItem({
+      productId: "p1",
+      name: "Test Product",
+      price: 10,
+      quantity: 3,
+    });
+
+    cart.removeItem("p1");
+    cart.clearCart();
+
+    await vi.runAllTimersAsync();
+
+    expect(addItemSpy).toHaveBeenCalledTimes(2);
+    expect(removeItemSpy).toHaveBeenCalledTimes(1);
+    expect(clearCartSpy).toHaveBeenCalledTimes(1);
   });
 });

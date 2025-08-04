@@ -2,15 +2,15 @@ import { AsyncQueuer, AsyncQueuerState } from "@tanstack/pacer";
 import polly from "polly-js";
 import { CartEvent, cartEventHandlers } from "../events/cart";
 
-const PERSIST_KEY = "cart-queue";
+const CART_QUEUE_STORAGE_KEY = "cart-queue";
 
-const rawQueue = localStorage.getItem(PERSIST_KEY);
+const rawQueue = localStorage.getItem(CART_QUEUE_STORAGE_KEY);
 const initialState: AsyncQueuerState<CartEvent> | undefined = rawQueue
   ? JSON.parse(rawQueue)
   : undefined;
 
 const saveQueueState = (state: AsyncQueuerState<CartEvent>) => {
-  localStorage.setItem(PERSIST_KEY, JSON.stringify(state));
+  localStorage.setItem(CART_QUEUE_STORAGE_KEY, JSON.stringify(state));
 };
 
 const processEvent = async <E extends CartEvent>(evt: E) => {

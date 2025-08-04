@@ -1,5 +1,5 @@
 import { ItemAdded } from "../cart-events";
 
 export const handleItemAdded = async (evt: ItemAdded) => {
-  console.log(evt);
+  console.log("handleItemAdded", evt);
 };

@@ -11,7 +11,6 @@ import {
   ItemAdded,
 } from "../src/lib/events/cart/cart-events";
 import { cartEventHandlers } from "../src/lib/events/cart/handlers";
-import { get } from "http";
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -20,7 +19,7 @@ afterEach(() => {
 });
 
 it("Dispatches the correct handler (happy path)", async () => {
-  const spy = vi.spyOn(cartEventHandlers, "ITEM_ADDED").mockResolvedValue();
+  const spy = vi.spyOn(cartEventHandlers, ITEM_ADDED).mockResolvedValue();
 
   enqueueCartMessage({
     type: ITEM_ADDED,
@@ -34,7 +33,7 @@ it("Dispatches the correct handler (happy path)", async () => {
 it("Processes items FIFO", async () => {
   const seen: string[] = [];
 
-  vi.spyOn(cartEventHandlers, "ITEM_ADDED").mockImplementation(
+  vi.spyOn(cartEventHandlers, ITEM_ADDED).mockImplementation(
     async (e: ItemAdded) => {
       seen.push(e.payload.productId);
     }
@@ -55,7 +54,7 @@ it("Processes items FIFO", async () => {
 
 it("Retries on transient error, then succeeds", async () => {
   const stub = vi
-    .spyOn(cartEventHandlers, "ITEM_ADDED")
+    .spyOn(cartEventHandlers, ITEM_ADDED)
     .mockRejectedValueOnce(new Error("boom"))
     .mockResolvedValueOnce();
 
@@ -72,8 +71,16 @@ it("Retries on transient error, then succeeds", async () => {
 });
 
 it("Marks item as failed after all retries", async () => {
-  vi.spyOn(cartEventHandlers, "ITEM_ADDED").mockRejectedValue(
-    new Error("API error")
+  // The simulated error happens async on the queue, so we need to ignore the error
+  process.on("unhandledRejection", (err) => {
+    if (err instanceof Error && err.message.includes("Simulated failure")) {
+      return;
+    }
+    throw err;
+  });
+
+  vi.spyOn(cartEventHandlers, ITEM_ADDED).mockRejectedValue(
+    new Error("Simulated failure")
   );
 
   enqueueCartMessage({
@@ -99,8 +106,23 @@ it("Persists to local storage on every state change", async () => {
 });
 
 it("Throws if no handler is registered", async () => {
+  // The expected error happens async on the queue, so we need to ignore the error
+  // and assert that we catch the error in other ways
+  process.on("uncaughtException", (err) => {
+    if (err instanceof Error && err.message.includes("No handler registered")) {
+      // ignore expected error
+      return;
+    }
+
+    // rethrow unexpected errors
+    throw err;
+  });
+
   // cast to bypass compile‑time check
-  const bad = { type: "BAD_EVENT", payload: undefined } as unknown as CartEvent;
+  const bad = {
+    type: "BAD_EVENT",
+    payload: undefined,
+  } as unknown as CartEvent;
 
   enqueueCartMessage(bad);
   await vi.runAllTimersAsync();
