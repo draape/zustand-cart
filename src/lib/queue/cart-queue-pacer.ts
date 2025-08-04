@@ -1,15 +1,15 @@
-import { Queuer, QueuerState } from "@tanstack/pacer";
+import { AsyncQueuer, AsyncQueuerState } from "@tanstack/pacer";
 import polly from "polly-js";
 import { CartEvent, cartEventHandlers } from "../events/cart";
 
 const PERSIST_KEY = "cart-queue";
 
 const rawQueue = localStorage.getItem(PERSIST_KEY);
-const initialState: QueuerState<CartEvent> | undefined = rawQueue
+const initialState: AsyncQueuerState<CartEvent> | undefined = rawQueue
   ? JSON.parse(rawQueue)
   : undefined;
 
-const saveQueueState = (state: QueuerState<CartEvent>) => {
+const saveQueueState = (state: AsyncQueuerState<CartEvent>) => {
   localStorage.setItem(PERSIST_KEY, JSON.stringify(state));
 };
 
@@ -25,8 +25,9 @@ const processEvent = async <E extends CartEvent>(evt: E) => {
     .executeForPromise(() => handler(evt));
 };
 
-export const cartQueuer = new Queuer<CartEvent>(processEvent, {
+export const cartQueuer = new AsyncQueuer<CartEvent>(processEvent, {
   initialState,
+  concurrency: 1,
 });
 
 // Subscribe to state changes to persist the queue
