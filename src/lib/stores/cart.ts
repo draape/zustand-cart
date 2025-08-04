@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { CartItem } from "./types";
-import { enqueueCartMessage } from "../queue/cart-queue-pacer";
+import { CartItem } from "./cart-item";
+import { enqueueCartMessage } from "../queues/cart-queue";
 
 export const CART_STORAGE_KEY = "cart-storage";
 
