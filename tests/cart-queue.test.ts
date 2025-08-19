@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  cartQueuer,
+  getCartQueuer,
   enqueueCartMessage,
   getCartQueueState,
 } from "../src/lib/queues/cart-queue";
@@ -16,7 +16,7 @@ describe("Cart queue", () => {
   afterEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    cartQueuer.reset();
+    getCartQueuer()?.reset();
   });
 
   it("Dispatches the correct handler (happy path)", async () => {
@@ -68,7 +68,7 @@ describe("Cart queue", () => {
     await vi.advanceTimersByTimeAsync(4_000);
 
     expect(stub).toHaveBeenCalledTimes(2);
-    expect(getCartQueueState().items.length).toBe(0);
+    expect(getCartQueueState()?.items.length).toBe(0);
   });
 
   it("Marks item as failed after all retries", async () => {
@@ -92,7 +92,7 @@ describe("Cart queue", () => {
     // advance by total polly back‑off plus micro‑task ticks
     await vi.advanceTimersByTimeAsync(4_000);
 
-    expect(getCartQueueState().errorCount).toBe(1);
+    expect(getCartQueueState()?.errorCount).toBe(1);
   });
 
   it("Persists to local storage on every state change", async () => {
@@ -132,7 +132,28 @@ describe("Cart queue", () => {
     await vi.runAllTimersAsync();
 
     const cartState = getCartQueueState();
-    expect(cartState.errorCount).toBe(1);
-    expect(cartState.successCount).toBe(0);
+    expect(cartState?.errorCount).toBe(1);
+    expect(cartState?.successCount).toBe(0);
+  });
+});
+
+describe("SSR safety", () => {
+  const originalWindow = globalThis.window;
+
+  afterEach(() => {
+    globalThis.window = originalWindow;
+    vi.resetModules();
+  });
+
+  it("Does not initialize cart queue during SSR", async () => {
+    // @ts-expect-error: Simulating SSR
+    delete globalThis.window;
+
+    vi.resetModules();
+
+    const { getCartQueueState } = await import("../src/lib/queues/cart-queue");
+    const queueState = getCartQueueState();
+
+    expect(queueState).toBeUndefined();
   });
 });
